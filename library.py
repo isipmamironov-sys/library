@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import pickle
 
 class Book:
     def __init__(self, title, author, status):
@@ -152,64 +153,31 @@ class LibrarySystem:
     
     def saveData(self):
         try:
-            with open("books.txt", "w", encoding="utf-8") as file:
-                for book in self.__books:
-                    file.write(book.toFileString())
-            
-            with open("users.txt", "w", encoding="utf-8") as file:
-                for user in self.__users:
-                    file.write(user.toFileString())
-                    file.write("---\n")
-            
-            with open("librarians.txt", "w", encoding="utf-8") as file:
-                for librarian in self.__librarians:
-                    file.write(f"{librarian.getName()}\n")
+            with open("library_data.pkl", "wb") as file:
+                pickle.dump({
+                    'books': self.__books,
+                    'users': self.__users,
+                    'librarians': self.__librarians
+                }, file)
         except Exception as e:
             print(f"Ошибка при сохранении: {e}")
     
     def loadData(self):
         try:
-            with open("books.txt", "r", encoding="utf-8") as file:
-                self.__books = []
-                for line in file:
-                    if(line.strip()):
-                        self.__books.append(Book.fromFileString(line))
+            with open("library_data.pkl", "rb") as file:
+                data = pickle.load(file)
+                self.__books = data.get('books', [])
+                self.__users = data.get('users', [])
+                self.__librarians = data.get('librarians', [Librarian("admin")])
         except FileNotFoundError:
             self.__books = []
-        except Exception as e:
-            print(f"Ошибка при загрузке книг: {e}")
-        
-        try:
-            with open("users.txt", "r", encoding="utf-8") as file:
-                self.__users = []
-                currentUserLines = []
-                for line in file:
-                    if(line.strip() == "---"):
-                        user = LibraryUser.fromFileLines(currentUserLines)
-                        if(user):
-                            self.__users.append(user)
-                        currentUserLines = []
-                    else:
-                        currentUserLines.append(line)
-                if(currentUserLines):
-                    user = LibraryUser.fromFileLines(currentUserLines)
-                    if(user):
-                        self.__users.append(user)
-        except FileNotFoundError:
             self.__users = []
-        except Exception as e:
-            print(f"Ошибка при загрузке пользователей: {e}")
-        
-        try:
-            with open("librarians.txt", "r", encoding="utf-8") as file:
-                self.__librarians = []
-                for line in file:
-                    if(line.strip()):
-                        self.__librarians.append(Librarian.fromFileString(line))
-        except FileNotFoundError:
             self.__librarians = [Librarian("admin")]
         except Exception as e:
-            print(f"Ошибка при загрузке библиотекарей: {e}")
+            print(f"Ошибка при загрузке: {e}")
+            self.__books = []
+            self.__users = []
+            self.__librarians = [Librarian("admin")]
 
 librarySystem = LibrarySystem()
 librarySystem.loadData()
